@@ -1,5 +1,19 @@
 from csv import reader
 
+def get_questions():
+    return ['Ti adatti facilmente alle situazioni e alle aspettative delle persone che ti stanno intorno?',
+            'Sei in grado di affrontare situazioni inaspettate che richiedono decisioni rapide e reazioni decise?',
+            'Ti capita di nascondere le tue vere intenzioni per manipolare le situazioni in cui ti trovi?',
+            'Ti basta poco tempo per fare amicizia o collaborare con gli altri?',
+            'Ti capita spesso che le persone ti dicano: “Sei diverso da come ti immaginavo”?',
+            'Tendi ad arrabbiarti facilmente in situazioni di stress?',
+            'Quando cerchi di aiutare o coinvolgere un amico in qualche attività, ti capita di esagerare e diventare un po’ invadente?',
+            'Ti capita di cercare di apparire diverso da quello che sei per sembrare “migliore” o per aderire alle aspettative degli altri?',
+            'Quando sei in compagnia, ti capita di sentirti per certi aspetti diverso o fuori luogo?',
+            'Ti è facile mantenere la calma e la concentrazione anche sotto pressione?',
+            'Quando devi raggiungere un obiettivo, lo fai ad ogni costo, anche se sei consapevole dei tuoi limiti?',
+            'Quando subisci un profondo dolore, delusione o lutto, continui a subirne  gli effetti negativi sulle tue capacità di stare nel mondo anche nei mesi successivi?'
+            ]
 
 def extract_csv(filename):
     with open(filename, 'r') as read_obj:
@@ -22,6 +36,17 @@ def get_points(elemento, risposte):
             punteggio += 5 * (4 - abs(elemento[i] - risposte[i]))
     
     return punteggio
+
+#calcolo la similitudine tra ogni elemento e le ripsoste dell'utente caratteristica per caratteristica
+#[2, 3, 2, 2, 4, 5, 3, 2, 5, 3, 5, 2]
+def get_differenza(elemento, risposte):
+    assert len(elemento) == len(risposte)
+    
+    differenza = []
+    for i in range(len(elemento)):
+        differenza.append(abs(elemento[i] - risposte[i]))
+    
+    return 1 - (sum((differenza)/len(differenza))/5)
     
 def percentuale(totale, n):
     return (n * 100) / totale
@@ -47,11 +72,12 @@ if __name__ == "__main__":
         
     table = extract_csv("sistema_periodico.csv")
     #le domande sono la prima riga del file csv
-    domande = table[0][1:]
+    caratteristiche = table[0][1:]
+    domande = get_questions()
     
     #creo un dizionario con chiave il nome dell'elemento e come valore la lista dei punteggi
     elementi = {i[0]: [int(i) for i in i[1:]] for i in table[1:]}
-    risposte = [2, 3, 2, 2, 4, 5, 3, 2, 5, 3, 5, 2]#get_answer(domande)
+    risposte = get_answer(domande)
     
     #creo un dizionario con chiave il nome dell'elemento e come valore il punteggio dell'elemento
     punteggi = {elemento: get_points(elementi[elemento], risposte) for elemento in elementi.keys()}
