@@ -1,9 +1,17 @@
 import tkinter as tk
-from algoritm import extract_csv, get_questions
+import warnings
+from functools import partial
 from os import getcwd
+
+warnings.filterwarnings("ignore")
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 from PIL import Image, ImageTk
 
-from functools import partial
+from utils import *
+
 
 class Value_Button(tk.Button):
     def __init__(self, number: int, *args, **kwargs):
@@ -23,12 +31,68 @@ class Image_Button(tk.Button):
         self.button_image = ImageTk.PhotoImage(Image.open(getcwd()+f"/buttons/{button_name}.png"))
         self.config(image=self.button_image)
 
-
 class Page(tk.Frame):
     def __init__(self, *args, **kwargs):
         tk.Frame.__init__(self, *args, **kwargs)
+        self.value = None 
     def show(self):
         self.lift()
+
+class Final_Page(Page):
+    def __init__(self, percentuali, labels, *args, **kwargs):
+        Page.__init__(self, *args, **kwargs)
+        
+        self.selected_wedge = None
+
+        #Graph
+        self.fig = Figure(figsize=(12, 6), dpi=120, facecolor="white") 
+        self.ax = self.fig.add_subplot()
+        
+        self.wedges, _ = self.ax.pie(percentuali.values(), labels=get_symbols(), counterclock=False)
+
+        self.ax.legend(percentuali.values(), labels=labels, loc='upper right', bbox_to_anchor=(-0.1, 1.),fontsize=8)
+        self.fig.subplots_adjust(right=0.905, left=0, bottom=0.067, top=0.89)
+        
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self)
+        self.canvas.get_tk_widget().configure(background='white')
+        
+        self.fig.canvas.mpl_connect("motion_notify_event", self.update)
+        
+        self.annotation = self.ax.annotate("", xy=(0, 0), xytext=(-20, 20), textcoords="offset points",color='yellow',bbox=dict(boxstyle="round", fc="black", ec="b", lw=2),arrowprops=dict(arrowstyle="->"))
+        self.annotation.set_visible(False)
+        
+        self.canvas.draw() 
+        self.canvas.get_tk_widget().place(relx=0.0, rely=1.04, anchor="sw")
+        
+        self.text_1 = tk.Label(self, text="Basandosi sulle tue risposte, tu sei una lega composta da:", font = ("Tahoma", 35))
+        self.text_1.place(relx=0.5, rely=0.07, anchor="center")
+        self.text_1.config(bg="white")
+
+    
+    def update(self, event):
+        if self.selected_wedge is not None:
+            self.selected_wedge.set_center((0, 0))
+            self.selected_wedge = None
+
+        if event.inaxes == self.ax:
+            for w in self.wedges:
+                text1 = split_line("Gas inerte, molto comune solubile in acqua iniquo e lega facilmente", 50)
+                text2 = split_line("Sei una persona disponibile anche se non molto propositiva, ti adatti facilmente alle diverse situazioni, anche se modificando l'atteggiamento. In questo modo fai amicizia facilmente", 50)
+                title = center_text(w.get_label(), 50)
+                if w.contains_point([event.x, event.y]):
+                    self.annotation.set_text(f" {title}\n\n{text1}\n\n{text2}")
+                    self.annotation.xy = (event.xdata, event.ydata)
+                    self.annotation.set_visible(True)
+                    theta = np.radians((w.theta1 + w.theta2) / 2)
+                    w.set_center((.2 * np.cos(theta), .2 * np.sin(theta)))
+                    self.selected_wedge = w
+                    self.fig.canvas.draw_idle()
+
+        if self.selected_wedge is None and self.annotation.get_visible():
+            self.annotation.set_visible(False)
+            self.fig.canvas.draw_idle()
+        
+
 
 class Question_Page(Page):
     def __init__(self, caratteristica, domanda, page_number, *args, **kwargs):
@@ -44,10 +108,6 @@ class Question_Page(Page):
         self.text_1.tag_configure("center", justify='center')
         self.text_1.tag_add("center", 1.0, "end")
         self.text_1.config(bg="white", wrap='word', relief='flat', state='disabled', width=45, height=3) 
-
-        #self.text_1 = tk.Label(self, text=self.domanda, font = ("Tahoma", 25))
-        #self.text_1.place(relx=0.5, rely=0.15, anchor="center")
-        #self.text_1.config(bg="white")
         
         self.value_buttons = []
         for i in range(1, 6):
@@ -96,8 +156,10 @@ class Question_Page(Page):
     def next(self):
         for i in self.value_buttons:
             if i.active == "clicked":
-                main.values.append(i.value)
+                main.add_value(i.value)
                 self.destroy()
+                if self.page_number == 12:
+                    main.show_results()
                 break
 
 class MainView(tk.Frame):
@@ -105,10 +167,10 @@ class MainView(tk.Frame):
         tk.Frame.__init__(self, *args, **kwargs)
         
         self.questions = get_questions()
-        self.values = []
-        self.table = extract_csv("sistema_periodico.csv")
+        self.risposte = []
+        self.table = extract_csv("punteggi.csv")
         self.caratteristiche = self.table[0][1:]
-        
+        self.elementi = {i[0]: [int(i) for i in i[1:]] for i in self.table[1:]}
         self.pages = list(
             reversed(
                 [
@@ -127,6 +189,7 @@ class MainView(tk.Frame):
 
         for i in self.pages:
             i.config(bg="white")
+            
 
         self.container = tk.Frame(self)
         self.container.pack(side="top", fill="both", expand=True)
@@ -144,12 +207,34 @@ class MainView(tk.Frame):
         self.credits_button.place(relx=0.5, rely=0.8, anchor="center")
         self.credits_button.config(bg="white", width = 412, height=161)
         
-        
-    def show_pages(self):
-        for i in self.pages:
-            i.place(in_=self.container, x=0, y=0, relwidth=1, relheight=1)
-            i.show()
+    
+    def add_value(self, value):
+        self.risposte.append(value)
 
+    def show_pages(self):
+        ad = [True, False][0]
+        if ad is True:
+            for i in self.pages:
+                i.place(in_=self.container, x=0, y=0, relwidth=1, relheight=1)
+                i.show()
+        else:
+            self.risposte = [1, 2, 3, 4, 5, 4, 3, 2, 1, 2, 3, 4]
+            self.show_results()
+
+    def show_results(self):
+        
+        self.punteggi = {elemento: get_points(self.elementi[elemento], self.risposte) for elemento in self.elementi.keys()}
+        totale_punti = sum(list(self.punteggi.values()))
+
+        percentuali = {elemento: percentage(totale_punti, self.punteggi[elemento]) for elemento in self.elementi.keys()}
+
+        labels = [f"{k} - {round(percentuali[k], 3)}%" for k in percentuali]
+
+        self.final_page = Final_Page(percentuali, labels)
+        self.final_page.config(bg="white")
+        self.final_page.place(in_=self.container, x=0, y=0, relwidth=1, relheight=1)
+        self.final_page.show()
+                
     def show_credits(self):
         pass
                 
