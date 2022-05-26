@@ -2,6 +2,7 @@ import tkinter as tk
 import warnings
 from functools import partial
 from os import getcwd
+from json import load as json_load
 
 warnings.filterwarnings("ignore")
 import matplotlib.pyplot as plt
@@ -43,7 +44,10 @@ class Final_Page(Page):
         Page.__init__(self, *args, **kwargs)
         
         self.selected_wedge = None
+        self.percentuali = percentuali
 
+        with open("elementi.json", "r", encoding='utf-8') as f:
+            self.data = json_load(f)
         #Graph
         self.fig = Figure(figsize=(12, 6), dpi=120, facecolor="white") 
         self.ax = self.fig.add_subplot()
@@ -76,10 +80,12 @@ class Final_Page(Page):
 
         if event.inaxes == self.ax:
             for w in self.wedges:
-                text1 = split_line("Gas inerte, molto comune solubile in acqua iniquo e lega facilmente", 50)
-                text2 = split_line("Sei una persona disponibile anche se non molto propositiva, ti adatti facilmente alle diverse situazioni, anche se modificando l'atteggiamento. In questo modo fai amicizia facilmente", 50)
-                title = center_text(w.get_label(), 50)
                 if w.contains_point([event.x, event.y]):
+                    element = self.data[w.get_label()]
+                    title = center_text(f"{element[0]} - {round(self.percentuali[element[0]], 3)}%", 50)
+                    text1 = split_line(element[1], 50)
+                    text2 = split_line(element[2], 50)
+                
                     self.annotation.set_text(f" {title}\n\n{text1}\n\n{text2}")
                     self.annotation.xy = (event.xdata, event.ydata)
                     self.annotation.set_visible(True)
@@ -93,6 +99,27 @@ class Final_Page(Page):
             self.fig.canvas.draw_idle()
         
 
+class Credits_Page(Page):
+    def __init__(self, *args, **kwargs):
+        Page.__init__(self, *args, **kwargs)
+        
+        self.text_1 = tk.Label(self, text="Crediti:", font = ("Tahoma", 30))
+        self.text_1.place(relx=0.5, rely=0, anchor="n")
+        self.text_1.config(bg="white")
+            
+        self.text_2 = tk.Text(self,  font=("Tahoma", 25))
+        self.text_2.place(relx=0.5, rely=0.08, anchor="n")
+        self.text_2.insert(1.0, get_credits_desc())
+        self.text_2.tag_configure("center", justify='center')
+        self.text_2.tag_add("center", 1.0, "end")
+        self.text_2.config(bg="white", wrap='word', relief='flat', state='disabled',  width=65, height=13) 
+        
+        self.back_button = Image_Button("back", self, command=self.back, borderwidth=0)
+        self.back_button.place(relx=0.5, rely=0.99, anchor="s")
+        self.back_button.config(bg="white", width = 450, height=120)
+    
+    def back(self):
+        self.destroy()
 
 class Question_Page(Page):
     def __init__(self, caratteristica, domanda, page_number, *args, **kwargs):
@@ -212,14 +239,9 @@ class MainView(tk.Frame):
         self.risposte.append(value)
 
     def show_pages(self):
-        ad = [True, False][0]
-        if ad is True:
-            for i in self.pages:
-                i.place(in_=self.container, x=0, y=0, relwidth=1, relheight=1)
-                i.show()
-        else:
-            self.risposte = [1, 2, 3, 4, 5, 4, 3, 2, 1, 2, 3, 4]
-            self.show_results()
+        for i in self.pages:
+            i.place(in_=self.container, x=0, y=0, relwidth=1, relheight=1)
+            i.show()
 
     def show_results(self):
         
@@ -236,7 +258,10 @@ class MainView(tk.Frame):
         self.final_page.show()
                 
     def show_credits(self):
-        pass
+        self.credits_page = Credits_Page()
+        self.credits_page.config(bg="white")
+        self.credits_page.place(in_=self.container, x=0, y=0, relwidth=1, relheight=1)
+        self.credits_page.show()
                 
 
 if __name__ == "__main__":
@@ -246,4 +271,7 @@ if __name__ == "__main__":
     root.wm_geometry("1280x720")
     root.resizable(False, False)
     root.configure(background='#FFFFFF')
+    root.title("Sistema Periodico")
+    #root.iconbitmap(getcwd()+"icon.ico")
+    #root.attributes('-toolwindow', True)
     root.mainloop()

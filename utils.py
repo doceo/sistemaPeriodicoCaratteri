@@ -65,3 +65,6 @@ def center_text(line: str, line_lenght: int):
     space_number = (line_lenght - len(line))/2
     spaces = " " * int(space_number*1.5)
     return spaces + line
+
+def get_credits_desc():
+    return '"Sistema Periodico" è un libro scritto da Primo Levi, l\'opera raccoglie 21 racconti, ciascuno intitolato con il nome di un elemento della tavola periodica, ad esso in qualche modo collegato. I temi sono numerosi, incentrati sulla vita professionale di chimico e contenuti in una cornice autobiografica. La classe 3E dell\'istituto G.B Vico di Napoli durante l\'anno scolastico 2021-2022 ha letto e analizzato questo libro nelle ore di Italiano con la professoressa Soravia. La classe ha inoltre approfondito i vari elementi durante le ore di scienze con il professor Esposito. Poi alcuni studenti hanno collegato ad ogni elemento un personaggio apparso nel capitolo del libro corrispondente in modo da associare un carattere ad ogni elemento. Infine è stata sviluppata un applicazione con Python e Tkinter.\n Alunni che hanno partecipato al progetto: Alessandro Todino, Luca Biasi, Francesco Bocchetti, Enrico Avallone, Giuseppe Fulgione, Giovanni Catalano, Raffaele Mariano, Roberto Ferrigno e Luca Patruno.'
