@@ -66,7 +66,7 @@ class Final_Page(Page):
         self.annotation.set_visible(False)
         
         self.canvas.draw() 
-        self.canvas.get_tk_widget().place(relx=0.0, rely=1.04, anchor="sw")
+        self.canvas.get_tk_widget().place(relx=0.0, rely=1.1, anchor="sw")
         
         self.text_1 = tk.Label(self, text="Basandosi sulle tue risposte, tu sei una lega composta da:", font = ("Tahoma", 35))
         self.text_1.place(relx=0.5, rely=0.07, anchor="center")
